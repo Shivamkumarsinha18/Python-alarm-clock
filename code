@@ -1,0 +1,106 @@
+import tkinter as tk
+from tkinter import ttk
+from tkinter import messagebox
+from datetime import datetime
+from time import sleep
+import winsound
+import math
+
+class AlarmClockApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Alarm Clock")
+
+        self.alarm_time_var = tk.StringVar()
+        self.alarm_time_var.set("12:00 AM")
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Time Entry
+        ttk.Label(self.root, text="Set Alarm Time:").grid(row=0, column=0, padx=10, pady=10)
+        time_entry = ttk.Entry(self.root, textvariable=self.alarm_time_var)
+        time_entry.grid(row=0, column=1, padx=10, pady=10)
+
+        # Set Alarm Button
+        set_alarm_button = ttk.Button(self.root, text="Set Alarm", command=self.set_alarm)
+        set_alarm_button.grid(row=1, column=0, columnspan=2, pady=10)
+
+        # Analog Clock
+        self.clock_canvas = tk.Canvas(self.root, width=200, height=200, bg='white')
+        self.clock_canvas.grid(row=2, column=0, columnspan=2, pady=10)
+        self.update_clock()
+
+    def set_alarm(self):
+        alarm_time_str = self.alarm_time_var.get()
+        try:
+            alarm_time = datetime.strptime(alarm_time_str, "%I:%M %p").time()
+        except ValueError:
+            messagebox.showerror("Error", "Invalid time format. Please use HH:MM AM/PM.")
+            return
+
+        current_time = datetime.now().time()
+
+        alarm_seconds = self.time_to_seconds(alarm_time)
+        current_seconds = self.time_to_seconds(current_time)
+
+        if alarm_seconds <= current_seconds:
+            messagebox.showwarning("Warning", "Please set a future time.")
+            return
+
+        time_difference = alarm_seconds - current_seconds
+        self.root.after(int(time_difference * 1000), self.play_alarm_sound)
+
+    def time_to_seconds(self, t):
+        return t.hour * 3600 + t.minute * 60 + t.second
+
+    def play_alarm_sound(self):
+        frequency = 2500  # Set Frequency To 2500 Hertz
+        duration = 1000  # Set Duration To 1000 ms == 1 second
+        winsound.Beep(frequency, duration)
+        messagebox.showinfo("Alarm", "Time's up!")
+
+    def update_clock(self):
+        current_time = datetime.now()
+        hour = current_time.hour
+        minute = current_time.minute
+        second = current_time.second
+
+        self.draw_clock(hour, minute, second)
+        self.root.after(1000, self.update_clock)  # Update every second
+
+    def draw_clock(self, hour, minute, second):
+        self.clock_canvas.delete("all")
+
+        # Draw clock circle
+        self.clock_canvas.create_oval(10, 10, 190, 190)
+
+        # Draw hour hand
+        hour_angle = math.radians(90 - (hour % 12 + minute / 60) * 30)
+        hour_x = 100 + 30 * math.cos(hour_angle)
+        hour_y = 100 - 30 * math.sin(hour_angle)
+        self.clock_canvas.create_line(100, 100, hour_x, hour_y, width=4, fill='black')
+
+        # Draw minute hand
+        minute_angle = math.radians(90 - minute * 6)
+        minute_x = 100 + 40 * math.cos(minute_angle)
+        minute_y = 100 - 40 * math.sin(minute_angle)
+        self.clock_canvas.create_line(100, 100, minute_x, minute_y, width=2, fill='blue')
+
+        # Draw second hand
+        second_angle = math.radians(90 - second * 6)
+        second_x = 100 + 50 * math.cos(second_angle)
+        second_y = 100 - 50 * math.sin(second_angle)
+        self.clock_canvas.create_line(100, 100, second_x, second_y, fill='red')
+
+        # Draw clock numbers
+        for i in range(1, 13):
+            angle = math.radians(90 - i * 30)
+            num_x = 100 + 70 * math.cos(angle)
+            num_y = 100 - 70 * math.sin(angle)
+            self.clock_canvas.create_text(num_x, num_y, text=str(i), font=('Helvetica', 8, 'bold'))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AlarmClockApp(root)
+    root.mainloop()
